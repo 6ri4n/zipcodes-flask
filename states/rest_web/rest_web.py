@@ -7,65 +7,69 @@
 #https://stackoverflow.com/questions/7478366/create-dynamic-urls-in-flask-with-url-for
 #https://github.com/vimalloc/flask-jwt-extended/issues/175
 
-
 from mysql import connector
 from flask import Flask, redirect, url_for, request, render_template
 import mysql.connector
+
+
 app = Flask(__name__, static_url_path='')
 
 #connect to database
-conn = mysql.connector.connect(user='root', password='',
-                                  host='127.0.0.1',
-                                  database='states',
-                               buffered = True)
+conn = mysql.connector.connect(
+    user='root',
+    password='',
+    host='127.0.0.1',
+    database='zipcodes',
+    buffered = True
+)
 cursor = conn.cursor()
 
-#Search state database
-@app.route('/searchSTATE/<searchState>')
-def searchstate(searchState):
+# search for zip from zipcodes database
+@app.route('/search_zip/<zip>')
+def search_zip(zip):
     # Get data from database
-    cursor.execute("SELECT * FROM `states` WHERE State=%s", [searchState])
+    cursor.execute("SELECT * FROM `zipcodes` WHERE zip = %s", [zip])
     test = cursor.rowcount
     if test != 1:
-        return searchState + " was not found"
+        return zip + " was not found"
     else:
         searched = cursor.fetchall()
         return 'Success! Here you go: %s' % searched
 
-#update state database population for a specified state
-@app.route('/updatestatepop/<updateSTATE> <updatePOP>')
-def updatestatepop(updateSTATE, updatePOP):
-    cursor.execute("SELECT * FROM `states` WHERE State=%s", [updateSTATE])
+# update population for a specified zip from zipcodes database
+@app.route('/update_zip_pop/<zip> <update_pop>')
+def update_zip_pop(zip, update_pop):
+    cursor.execute("SELECT * FROM zipcodes WHERE zip = %s", [zip])
     test = cursor.rowcount
     if test != 1:
-        return updateSTATE + " was not found"
+        return zip + " was not found"
     else:
-        cursor.execute("UPDATE `states` SET Pop = %s WHERE State= %s;", [updatePOP,updateSTATE])
-        cursor.execute("SELECT * FROM `states` WHERE State=%s and Pop=%s", [updateSTATE,updatePOP])
+        cursor.execute("UPDATE zipcodes SET Population = %s WHERE zip = %s;", [update_pop, zip])
+        cursor.execute("SELECT * FROM zipcodes WHERE zip = %s and Population = %s", [zip, update_pop])
         test1 = cursor.rowcount
         if test1 != 1:
-            return updateSTATE + "  failed to update"
+            return zip + "  failed to update"
         else:
-            return 'Population has been updated successfully for State: %s' % updateSTATE
+            return 'Population has been updated successfully for Zip: %s' % zip
 
-#update webpage
+# update webpage
 @app.route('/update',methods = ['POST'])
 def update():
-       user = request.form['ustate']
-       user2 = request.form['upop']
-       return redirect(url_for('updatestatepop', updateSTATE=user, updatePOP=user2))
+       r = request.form['u_zip']
+       r2 = request.form['u_pop']
+       return redirect(url_for('update_zip_pop', zip = r, update_pop = r2))
 
-#search page
+# search page
 @app.route('/search', methods=['GET'])
 def search():
-       user = request.args.get('sstate')
-       return redirect(url_for('searchstate', searchState=user))
+       r = request.args.get('s_zip')
+       return redirect(url_for('search_zip', zip = r))
 
-
-#root of web server and gots to template (login.html)
+# root of web server and gots to template (index.html)
 @app.route('/')
 def root():
-   return render_template('login.html')
+   return render_template('index.html')
+
 
 #main
 if __name__ == '__main__':
